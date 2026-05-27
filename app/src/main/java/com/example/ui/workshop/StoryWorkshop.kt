@@ -881,15 +881,13 @@ fun WorkshopEditorArea(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
                         .padding(20.dp)
                 ) {
                     BasicTextField(
                         value = editorValue,
                         onValueChange = { onValueChange(it) },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 400.dp),
+                            .fillMaxSize(),
                         textStyle = TextStyle(
                             fontFamily = FontFamily.SansSerif,
                             fontSize = 17.sp,

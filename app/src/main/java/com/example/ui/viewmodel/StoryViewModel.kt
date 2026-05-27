@@ -12,6 +12,10 @@ import kotlinx.coroutines.launch
 
 class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
 
+    private var chaptersJob: kotlinx.coroutines.Job? = null
+    private var sectionsJob: kotlinx.coroutines.Job? = null
+    private var saveJob: kotlinx.coroutines.Job? = null
+
     // --- State Observables ---
 
     val stories: StateFlow<List<Story>> = repository.allStories
@@ -46,15 +50,18 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
     // --- Flow Observers for Subtopics ---
 
     init {
-        // Automatically load chapters when story changes
+        // Automatically load chapters when story changes with proper job cancellation
         viewModelScope.launch {
             currentStory.collect { story ->
+                chaptersJob?.cancel()
                 if (story != null) {
-                    repository.getChaptersForStory(story.id).collect { chapterList ->
-                        _chapters.value = chapterList
-                        // Auto-select first chapter if nothing is selected or previous is gone
-                        if (_currentChapter.value == null || !chapterList.any { it.id == _currentChapter.value?.id }) {
-                            _currentChapter.value = chapterList.firstOrNull()
+                    chaptersJob = viewModelScope.launch {
+                        repository.getChaptersForStory(story.id).collect { chapterList ->
+                            _chapters.value = chapterList
+                            // Auto-select first chapter if nothing is selected or previous is gone
+                            if (_currentChapter.value == null || !chapterList.any { it.id == _currentChapter.value?.id }) {
+                                _currentChapter.value = chapterList.firstOrNull()
+                            }
                         }
                     }
                 } else {
@@ -64,14 +71,17 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
             }
         }
 
-        // Automatically load sections when current chapter changes
+        // Automatically load sections when current chapter changes with proper job cancellation
         viewModelScope.launch {
             currentChapter.collect { chapter ->
+                sectionsJob?.cancel()
                 if (chapter != null) {
-                    repository.getSectionsForChapter(chapter.id).collect { sectionList ->
-                        _sections.value = sectionList
-                        if (_currentSection.value == null || !sectionList.any { it.id == _currentSection.value?.id }) {
-                            _currentSection.value = sectionList.firstOrNull()
+                    sectionsJob = viewModelScope.launch {
+                        repository.getSectionsForChapter(chapter.id).collect { sectionList ->
+                            _sections.value = sectionList
+                            if (_currentSection.value == null || !sectionList.any { it.id == _currentSection.value?.id }) {
+                                _currentSection.value = sectionList.firstOrNull()
+                            }
                         }
                     }
                 } else {
@@ -84,7 +94,21 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
 
     // --- Story Operations ---
 
+    fun forceSavePending() {
+        val job = saveJob
+        if (job != null && job.isActive) {
+            saveJob?.cancel()
+            val current = _currentSection.value
+            if (current != null) {
+                viewModelScope.launch {
+                    repository.updateSection(current)
+                }
+            }
+        }
+    }
+
     fun selectStory(story: Story?) {
+        forceSavePending()
         _currentStory.value = story
         _currentChapter.value = null
         _currentSection.value = null
@@ -126,6 +150,7 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
     // --- Chapter Operations ---
 
     fun selectChapter(chapter: Chapter?) {
+        forceSavePending()
         _currentChapter.value = chapter
         _currentSection.value = null
         clearAiState()
@@ -165,6 +190,7 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
     // --- Section Operations ---
 
     fun selectSection(section: Section?) {
+        forceSavePending()
         _currentSection.value = section
         clearAiState()
     }
@@ -181,9 +207,14 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
 
     fun updateSectionContent(content: String) {
         val section = _currentSection.value ?: return
+        if (section.content == content) return
+        
         val updated = section.copy(content = content, updatedAt = System.currentTimeMillis())
         _currentSection.value = updated
-        viewModelScope.launch {
+        
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(1000)
             repository.updateSection(updated)
         }
     }
