@@ -1,0 +1,6 @@
+{
+  "name": "MuseWriter",
+  "description": "A beautiful, modern AI-powered Story Writer for Android featuring section-wise chapter management, rich markdown editor & live rendering, and Gemini assistant tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

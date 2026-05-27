@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Shadow / Ambient Glow -->
+    <path
+        android:pathData="M54,20 C42,20 28,30 28,54 C28,78 42,88 54,88 C66,88 80,78 80,54 C80,30 66,20 54,20 Z"
+        android:fillColor="#15FFD700" />
+
+    <!-- Open Book base (bottom) -->
+    <path
+        android:pathData="M24,70 C34,64 48,64 54,68 C60,64 74,64 84,70 L84,40 C74,34 60,34 54,38 C48,34 34,34 24,40 Z"
+        android:strokeColor="#FFC107"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+
+    <!-- Book Center Divider -->
+    <path
+        android:pathData="M54,38 L54,68"
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- Feather Quill Pen hovering -->
+    <path
+        android:pathData="M48,58 L63,33 C68,25 76,21 78,23 C80,25 76,33 68,38 L54,52"
+        android:strokeColor="#FFE082"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+
+    <!-- Feather detail lines -->
+    <path
+        android:pathData="M61,36 L64,39 M58,41 L61,44 M55,46 L58,49"
+        android:strokeColor="#FFE082"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- Sparkle star indicating AI assistants -->
+    <path
+        android:pathData="M37,28 L39,32 L43,33 L39,34 L37,38 L35,34 L31,33 L35,32 Z"
+        android:fillColor="#FFF59D" />
+
+    <path
+        android:pathData="M71,59 L72,61 L74,62 L72,63 L71,65 L70,63 L68,62 L70,61 Z"
+        android:fillColor="#FFF59D" />
+        
+</vector>
