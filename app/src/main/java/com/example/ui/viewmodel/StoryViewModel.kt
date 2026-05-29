@@ -426,6 +426,125 @@ class StoryViewModel(private val repository: StoryRepository) : ViewModel() {
             _isAiLoading.value = false
         }
     }
+
+    /**
+     * Runs an AI-driven proofreading/spell checking on the manuscript content.
+     */
+    fun aiSpellCheck(content: String) {
+        _isAiLoading.value = true
+        _aiError.value = null
+        _aiOutput.value = null
+
+        viewModelScope.launch {
+            val sysPrompt = """
+                You are a meticulous, world-class editor, proofreader and grammarian.
+                Review the provided draft segment. Identify typos, spelling errors, incorrect punctuation, and grammar mistakes.
+                Return your findings in beautiful, professional styled Markdown format. Build two clear sections:
+                
+                ### 🔍 IDENTIFIED ISSUES & TYPOS (brief explanation notes)
+                ### ✍️ FULLY CORRECTED TEXT (with the fully polished, proofread scene)
+                
+                Keep your edits clean, preserve the original creative voice of the writer, and output raw markdown directly without intro greetings.
+            """.trimIndent()
+
+            val mainPrompt = """
+                Please run a full spell-check, proofread, and grammatical polish for this scene context:
+                
+                $content
+            """.trimIndent()
+
+            val result = GeminiClient.generate(mainPrompt, sysPrompt, temperature = 0.35)
+            if (result.startsWith("API Error:") || result.startsWith("Error:")) {
+                _aiError.value = result
+            } else {
+                _aiOutput.value = result
+            }
+            _isAiLoading.value = false
+        }
+    }
+
+    // --- Story-wide Manuscript Compiler ---
+    
+    suspend fun compileFullBookText(): String {
+        val story = _currentStory.value ?: return ""
+        val chaptersList = _chapters.value
+        val sb = java.lang.StringBuilder()
+        
+        sb.append("# ${story.title}\n\n")
+        sb.append("Genre: ${story.genre}\n\n")
+        sb.append("## Synopsis / Core Prompt\n${story.synopsis}\n\n")
+        sb.append("=========================\n\n")
+        
+        for (chap in chaptersList) {
+            sb.append("# ${chap.title}\n\n")
+            // Fetch sections for this chapter
+            val secList = repository.getSectionsForChapter(chap.id).firstOrNull() ?: emptyList()
+            for (sec in secList) {
+                sb.append("## ${sec.title}\n\n")
+                sb.append("${sec.content}\n\n")
+            }
+            sb.append("\n")
+        }
+        return sb.toString()
+    }
+
+    // --- Ordering & Sectioning Up/Down Shifting ---
+
+    fun getWordCountForStory(storyId: Int): Flow<Int> {
+        return repository.getAllSectionsForStory(storyId).map { sections ->
+            sections.sumOf { sec ->
+                sec.content.split(Regex("\\s+")).filter { it.isNotBlank() }.size
+            }
+        }
+    }
+
+    fun moveChapterUp(chapter: Chapter) {
+        val list = _chapters.value
+        val index = list.indexOfFirst { it.id == chapter.id }
+        if (index > 0) {
+            val prev = list[index - 1]
+            viewModelScope.launch {
+                repository.updateChapter(chapter.copy(sortOrder = prev.sortOrder))
+                repository.updateChapter(prev.copy(sortOrder = chapter.sortOrder))
+            }
+        }
+    }
+
+    fun moveChapterDown(chapter: Chapter) {
+        val list = _chapters.value
+        val index = list.indexOfFirst { it.id == chapter.id }
+        if (index >= 0 && index < list.size - 1) {
+            val next = list[index + 1]
+            viewModelScope.launch {
+                repository.updateChapter(chapter.copy(sortOrder = next.sortOrder))
+                repository.updateChapter(next.copy(sortOrder = chapter.sortOrder))
+            }
+        }
+    }
+
+    fun moveSectionUp(section: Section) {
+        val list = _sections.value
+        val index = list.indexOfFirst { it.id == section.id }
+        if (index > 0) {
+            val prev = list[index - 1]
+            viewModelScope.launch {
+                repository.updateSection(section.copy(sortOrder = prev.sortOrder))
+                repository.updateSection(prev.copy(sortOrder = section.sortOrder))
+            }
+        }
+    }
+
+    fun moveSectionDown(section: Section) {
+        val list = _sections.value
+        val index = list.indexOfFirst { it.id == section.id }
+        if (index >= 0 && index < list.size - 1) {
+            val next = list[index + 1]
+            viewModelScope.launch {
+                repository.updateSection(section.copy(sortOrder = next.sortOrder))
+                repository.updateSection(next.copy(sortOrder = section.sortOrder))
+            }
+        }
+    }
 }
 
 // --- Factory for Creating ViewModel ---

@@ -26,6 +26,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Initialize dynamic custom theme selection and state
+        com.example.ui.theme.AppThemeState.value = com.example.ui.theme.loadPersistedTheme(this)
+        
         // Fully blood-edge transparent drawing
         enableEdgeToEdge()
 
@@ -69,6 +72,7 @@ class MainActivity : ComponentActivity() {
                         if (activeStory == null) {
                             StoryDashboardScreen(
                                 stories = stories,
+                                getStoryWordCount = { storyId -> viewModel.getWordCountForStory(storyId) },
                                 onSelectStory = { story -> viewModel.selectStory(story) },
                                 onCreateStory = { title, genre, synopsis ->
                                     viewModel.createStory(title, genre, synopsis) { savedStory ->
